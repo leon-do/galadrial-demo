@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "https://github.com/galadriel-ai/contracts/blob/main/contracts/contracts/interfaces/IOracle.sol";
 
-contract Quickstart {
+contract Dalle {
     address private oracleAddress = 0x4168668812C94a3167FCd41D12014c5498D74d7e;
     mapping (address => string) public responses;
 
