@@ -9,13 +9,14 @@ contract Dalle {
 
     constructor() {}
 
-    function promptDalle(string memory _message) public returns (uint) {
+    function promptDalle(string memory _message) public returns (uint256) {
+        uint256 runId =  uint256(uint160(msg.sender));
         IOracle(oracleAddress).createFunctionCall(
-            uint256(uint160(msg.sender)),
+            runId,
             "image_generation",
             _message
         );
-        return uint256(uint160(msg.sender));
+        return runId;
     }
 
     function onOracleFunctionResponse(
