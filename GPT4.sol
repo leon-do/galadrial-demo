@@ -3,23 +3,48 @@ pragma solidity ^0.8.13;
 
 import "https://github.com/galadriel-ai/contracts/blob/main/contracts/contracts/interfaces/IOracle.sol";
 
-contract GPT4 {
+contract OpenAI {
     address private oracleAddress = 0x4168668812C94a3167FCd41D12014c5498D74d7e;
-    mapping (address => string) public responses;
+    IOracle.OpenAiRequest private config;
     mapping (uint => string) public prompts;
+    mapping (address => string) public responses;
 
-    constructor() {}
-
-    // https://docs.galadriel.com/reference/llms/basic#createllmcall
-    function prompt(string memory _message) public returns (uint256) {
-        uint256 runId = uint256(uint160(msg.sender));
-        prompts[runId] = _message;
-        return IOracle(oracleAddress).createLlmCall(runId);
+    // https://docs.galadriel.com/tutorials/multimodal
+    constructor() {
+        config = IOracle.OpenAiRequest({
+            model : "gpt-4-turbo", // gpt-4-turbo gpt-4o
+            frequencyPenalty : 21, // > 20 for null
+            logitBias : "", // empty str for null
+            maxTokens : 1000, // 0 for null
+            presencePenalty : 21, // > 20 for null
+            responseFormat : "{\"type\":\"text\"}",
+            seed : 0, // null
+            stop : "", // null
+            temperature : 10, // Example temperature (scaled up, 10 means 1.0), > 20 means null
+            topP : 101, // Percentage 0-100, > 100 means null
+            tools : "",
+            toolChoice : "", // "none" or "auto"
+            user : "" // null
+        });
     }
 
-    function onOracleLlmResponse(
+    function promptGPT(string memory _message) public {
+        uint256 runId = uint256(uint160(msg.sender));
+        IOracle.Message memory newMessage = IOracle.Message({
+            role: "user",
+            content: new IOracle.Content[](1)
+        });
+        newMessage.content[0] = IOracle.Content({
+            contentType: "text",
+            value: _message
+        });
+        prompts[runId] = _message;
+        IOracle(oracleAddress).createOpenAiLlmCall(runId, config);
+    }
+
+     function onOracleOpenAiLlmResponse(
         uint _runId,
-        string memory _response,
+        IOracle.OpenAiResponse memory _response,
         string memory _errorMessage
     ) public {
         require(msg.sender == oracleAddress, "Caller is not oracle");
@@ -27,21 +52,24 @@ contract GPT4 {
         if (keccak256(abi.encodePacked(_errorMessage)) != keccak256(abi.encodePacked(""))) {
             responses[toAddress] = _errorMessage;
         } else {
-            responses[toAddress] = _response;
+            responses[toAddress] = _response.content;
         }
     }
 
-    // https://docs.galadriel.com/reference/llms/message-history#getmessagehistoryroles
-    function getMessageHistoryRoles(uint _runId) public pure returns (string[] memory) {
-        string[] memory roles = new string[](1);
-        roles[0] = "user"; // ["system", "user", "assistant"]
-        return roles;
+    // required for Oracle
+    function getMessageHistory(uint _runId) public view returns (IOracle.Message[] memory) {
+        IOracle.Message memory newMessage = IOracle.Message({
+            role: "user",
+            content: new IOracle.Content[](1)
+        });
+        newMessage.content[0] = IOracle.Content({
+            contentType: "text",
+            value: prompts[_runId]
+        });
+        IOracle.Message[] memory newMessages = new IOracle.Message[](1);
+        newMessages[0] = newMessage;
+        return newMessages;
     }
 
-    // https://docs.galadriel.com/reference/llms/message-history#getmessagehistorycontents
-    function getMessageHistoryContents(uint _runId) public view returns (string[] memory) {
-        string[] memory messages = new string[](1);
-        messages[0] = prompts[_runId];
-        return messages;
-    }
+    
 }
