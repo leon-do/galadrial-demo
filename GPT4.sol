@@ -11,7 +11,7 @@ contract GPT4 {
     constructor() {}
 
     // https://docs.galadriel.com/reference/llms/basic#createllmcall
-    function promptLLM(string memory _message) public returns (uint256) {
+    function prompt(string memory _message) public returns (uint256) {
         uint256 runId = uint256(uint160(msg.sender));
         prompts[runId] = _message;
         return IOracle(oracleAddress).createLlmCall(runId);

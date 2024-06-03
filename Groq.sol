@@ -26,7 +26,7 @@ contract Groq {
         });
     }
 
-    function promptGPT(string memory _message) public {
+    function prompt(string memory _message) public {
         uint256 runId = uint256(uint160(msg.sender));
         prompts[runId] = _message;
         IOracle(oracleAddress).createGroqLlmCall(runId, config);
